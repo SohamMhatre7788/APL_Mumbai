@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let winProbHistory = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5]; // Over history
     let ballCounter = 0;
     let currentMode = "bowling";
+    let liveCurrentScore = null;
     
     // Canvas Setup
     const canvas = document.getElementById("pitch-canvas");
@@ -125,8 +126,8 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("batsman-pace-bar").style.width = `${details.pace_rating}%`;
         document.getElementById("batsman-spin-bar").style.width = `${details.spin_rating}%`;
         
-        battingTeamLabel.textContent = "Batting (Strike)";
     }
+
 
     function updateBowlerProfile() {
         const name = bowlerSelect.value;
@@ -163,7 +164,6 @@ document.addEventListener("DOMContentLoaded", () => {
             deliverySpeed.value = 88;
         }
         speedVal.textContent = deliverySpeed.value;
-        bowlingTeamLabel.textContent = "Bowling";
     }
 
     function toggleInningsChaseFields() {
@@ -492,13 +492,49 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!response.ok) throw new Error("Sync failed");
             const data = await response.json();
             
+            // Check for venue option, add if missing
+            let venueExists = Array.from(matchVenue.options).some(opt => opt.value === data.venue);
+            if (!venueExists && data.venue) {
+                const opt = document.createElement("option");
+                opt.value = data.venue;
+                opt.textContent = data.venue;
+                matchVenue.appendChild(opt);
+            }
+            
+            // Check for weather option, add if missing
+            let weatherExists = Array.from(matchWeather.options).some(opt => opt.value === data.weather);
+            if (!weatherExists && data.weather) {
+                const opt = document.createElement("option");
+                opt.value = data.weather;
+                opt.textContent = data.weather;
+                matchWeather.appendChild(opt);
+            }
+
             // Update Match Conditions
+            liveCurrentScore = data.current_score;
             matchVenue.value = data.venue;
             matchWeather.value = data.weather;
             matchInning.value = data.inning.toString();
             matchOvers.value = data.overs.toString();
             matchWickets.value = data.wickets.toString();
             ballAge.value = data.overs.toString();
+
+            // Extract team names from match_name and set gauge labels
+            const teamsMatch = data.match_name.split(/\s+vs\s+/i);
+            if (teamsMatch.length >= 2) {
+                const team1 = teamsMatch[0].trim();
+                let team2 = teamsMatch[1].split(/[,(]/)[0].trim();
+                if (data.inning === 2) {
+                    battingTeamLabel.textContent = team2;
+                    bowlingTeamLabel.textContent = team1;
+                } else {
+                    battingTeamLabel.textContent = team1;
+                    bowlingTeamLabel.textContent = team2;
+                }
+            } else {
+                battingTeamLabel.textContent = "Batting Team";
+                bowlingTeamLabel.textContent = "Bowling Team";
+            }
             
             if (data.inning === 2) {
                 targetRuns.value = data.target_runs;
@@ -638,7 +674,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const ballsLeft = parseInt(ballsRemaining.value);
         
         const oversPlayed = parseFloat(matchOvers.value);
-        const curRuns = isChase ? (totalTarget - runsToWin) : Math.round(oversPlayed * 8.2);
+        const curRuns = isChase ? (totalTarget - runsToWin) : (liveCurrentScore !== null ? liveCurrentScore : Math.round(oversPlayed * 8.2));
         
         const payload = {
             inning: parseInt(matchInning.value),
@@ -775,6 +811,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function updateMatchState(runsScored, isWicket) {
         ballCounter++;
+        if (liveCurrentScore !== null) {
+            liveCurrentScore += runsScored;
+        }
         
         let oversVal = parseFloat(matchOvers.value);
         let wicketsVal = parseInt(matchWickets.value);
@@ -826,6 +865,9 @@ document.addEventListener("DOMContentLoaded", () => {
         ballsRemaining.value = "30";
         ballAge.value = "15.0";
         winProbHistory = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
+        liveCurrentScore = null;
+        battingTeamLabel.textContent = "Batting Team";
+        bowlingTeamLabel.textContent = "Bowling Team";
         updateWinProbability();
     }
 });
