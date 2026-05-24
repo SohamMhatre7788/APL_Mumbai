@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPL Tactical AI-ML Player Analytics Platform</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Main Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="45" stroke="#00f0ff" stroke-width="4" stroke-dasharray="10 5" />
+                    <circle cx="50" cy="50" r="35" fill="none" stroke="#00e676" stroke-width="2" />
+                    <path d="M35 50L45 60L65 40" stroke="#ffea00" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div class="title-meta">
+                    <h1>IPL TACTICAL AI-ML ANALYSIS</h1>
+                    <p>STADIUM METRICS & MATCHUP PREDICTOR</p>
+                </div>
+            </div>
+            <div class="status-indicator">
+                <span class="pulse-dot"></span>
+                <span id="model-status-text">AI MODEL: ONLINE</span>
+            </div>
+        </header>
+
+        <!-- Main Workspace Grid -->
+        <main class="dashboard-grid">
+            
+            <!-- Left Panel: Match State & Players -->
+            <section class="grid-panel panel-left">
+                <div class="panel-header">
+                    <svg class="panel-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                    <h2>Match Context & Players</h2>
+                </div>
+                
+                <div class="panel-content scrollable">
+                    <!-- Match Conditions -->
+                    <fieldset class="config-group">
+                        <legend>Match Conditions</legend>
+                        <div class="input-grid">
+                            <div class="input-field-full" style="grid-column: span 2;">
+                                <label for="match-venue">Venue / Stadium</label>
+                                <select id="match-venue" style="width: 100%;">
+                                    <option value="Wankhede Stadium (Mumbai)">Wankhede Stadium (Mumbai)</option>
+                                    <option value="Eden Gardens (Kolkata)">Eden Gardens (Kolkata)</option>
+                                    <option value="M. Chinnaswamy Stadium (Bengaluru)">M. Chinnaswamy Stadium (Bengaluru)</option>
+                                    <option value="M. A. Chidambaram Stadium (Chennai)">M. A. Chidambaram Stadium (Chennai)</option>
+                                    <option value="Narendra Modi Stadium (Ahmedabad)">Narendra Modi Stadium (Ahmedabad)</option>
+                                    <option value="Rajiv Gandhi International Stadium (Hyderabad)">Rajiv Gandhi International Stadium (Hyderabad)</option>
+                                    <option value="Arun Jaitley Stadium (Delhi)">Arun Jaitley Stadium (Delhi)</option>
+                                    <option value="HPCA Stadium (Dharamshala)">HPCA Stadium (Dharamshala)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="input-field">
+                                <label for="match-weather">Weather</label>
+                                <select id="match-weather">
+                                    <option value="Sunny">Sunny</option>
+                                    <option value="Humid">Humid</option>
+                                    <option value="Overcast">Overcast</option>
+                                    <option value="Night (Dew)">Night (Dew)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="input-field">
+                                <label for="ball-type">Ball Brand</label>
+                                <select id="ball-type">
+                                    <option value="White Kookaburra">White Kookaburra</option>
+                                    <option value="SG Test">SG Test</option>
+                                    <option value="Pink Ball">Pink Ball</option>
+                                </select>
+                            </div>
+
+                            <div class="input-field" style="grid-column: span 2;">
+                                <label for="ball-age">Ball Age (Overs)</label>
+                                <input type="number" id="ball-age" min="0.1" max="20" step="0.1" value="0.1">
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- Inning & Score Configurator -->
+                    <fieldset class="config-group">
+                        <legend>Live Match State</legend>
+                        <div class="input-grid">
+                            <div class="input-field">
+                                <label for="match-inning">Inning</label>
+                                <select id="match-inning">
+                                    <option value="1">1st Inning</option>
+                                    <option value="2" selected>2nd Inning (Chase)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="input-field">
+                                <label for="match-overs">Overs Bowled</label>
+                                <input type="number" id="match-overs" min="0" max="19.5" step="0.1" value="15.0">
+                            </div>
+                            
+                            <div class="input-field">
+                                <label for="match-wickets">Wickets Lost</label>
+                                <input type="number" id="match-wickets" min="0" max="9" value="4">
+                            </div>
+
+                            <div class="input-field select-chase-only">
+                                <label for="target-runs">Target Score</label>
+                                <input type="number" id="target-runs" min="50" max="280" value="180">
+                            </div>
+
+                            <div class="input-field select-chase-only">
+                                <label for="runs-needed">Runs Needed</label>
+                                <input type="number" id="runs-needed" min="1" max="200" value="45">
+                            </div>
+
+                            <div class="input-field select-chase-only">
+                                <label for="balls-remaining">Balls Remaining</label>
+                                <input type="number" id="balls-remaining" min="1" max="120" value="30">
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- Player Head-To-Head Selection -->
+                    <fieldset class="config-group">
+                        <legend>Player Matchup</legend>
+                        
+                        <!-- Batsman Select -->
+                        <div class="player-select-card">
+                            <div class="select-row">
+                                <label for="batsman-select">Batsman (On Strike)</label>
+                                <select id="batsman-select"></select>
+                            </div>
+                            <div id="batsman-card" class="player-profile-mini">
+                                <img id="batsman-img" src="" alt="Batsman">
+                                <div class="player-details-text">
+                                    <h4 id="batsman-name-display">-</h4>
+                                    <p id="batsman-meta">-</p>
+                                    <div class="stats-bars">
+                                        <div class="stat-bar-container">
+                                            <span>vs Pace</span>
+                                            <div class="bar-fill" id="batsman-pace-bar" style="width: 0%"></div>
+                                        </div>
+                                        <div class="stat-bar-container">
+                                            <span>vs Spin</span>
+                                            <div class="bar-fill" id="batsman-spin-bar" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bowler Select -->
+                        <div class="player-select-card">
+                            <div class="select-row">
+                                <label for="bowler-select">Bowler</label>
+                                <select id="bowler-select"></select>
+                            </div>
+                            <div id="bowler-card" class="player-profile-mini">
+                                <img id="bowler-img" src="" alt="Bowler">
+                                <div class="player-details-text">
+                                    <h4 id="bowler-name-display">-</h4>
+                                    <p id="bowler-meta">-</p>
+                                    <div class="stats-bars">
+                                        <div class="stat-bar-container">
+                                            <span>Release Speed</span>
+                                            <div class="bar-fill" id="bowler-speed-bar" style="width: 0%"></div>
+                                        </div>
+                                        <div class="stat-bar-container">
+                                            <span>Deception</span>
+                                            <div class="bar-fill" id="bowler-deception-bar" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+                </div>
+            </section>
+            
+            <!-- Center Panel: Interactive Pitch Canvas & Control -->
+            <section class="grid-panel panel-center">
+                <div class="panel-header">
+                    <svg class="panel-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
+                    <h2>Delivery Strategy & Pitch Simulator</h2>
+                </div>
+
+                <div class="panel-content pitch-simulator-content">
+                    
+                    <!-- Pitch Canvas Area -->
+                    <div class="canvas-wrapper">
+                        <canvas id="pitch-canvas" width="600" height="350"></canvas>
+                        
+                        <!-- Canvas overlays for visual help -->
+                        <div id="target-crosshair" class="crosshair"></div>
+                        <div class="pitch-labels">
+                            <span class="label-wicket bowler-end">Bowler End</span>
+                            <span class="label-wicket batsman-end">Batsman End</span>
+                        </div>
+                        <div class="pitch-regions-overlay">
+                            <span>Good Length</span>
+                            <span>Yorker</span>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Delivery Settings -->
+                    <div class="delivery-settings">
+                        <div class="control-row">
+                            <div class="control-field flex-2">
+                                <label for="delivery-variation">Delivery Variation</label>
+                                <select id="delivery-variation">
+                                    <!-- Populated dynamically based on bowler -->
+                                </select>
+                            </div>
+                            
+                            <div class="control-field flex-3">
+                                <label for="delivery-speed">Release Speed: <span id="speed-val">140</span> kph</label>
+                                <input type="range" id="delivery-speed" min="70" max="160" value="140" step="1">
+                            </div>
+                        </div>
+
+                        <div class="coordinates-info">
+                            <div>Selected Line: <span class="badge" id="line-badge">Middle Stump</span></div>
+                            <div>Selected Length: <span class="badge" id="length-badge">Good Length</span></div>
+                        </div>
+
+                        <button id="simulate-btn" class="glow-button">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M8 5V19L19 12L8 5Z" fill="currentColor"/></svg>
+                            SIMULATE DELIVERY
+                        </button>
+                    </div>
+
+                    <!-- Live HUD: Simulation Output -->
+                    <div class="simulation-hud">
+                        <h3>LAST DELIVERY RESULT</h3>
+                        <div class="hud-grid">
+                            <div class="hud-card neon-cyan">
+                                <span class="hud-label">BOWLED SPEED</span>
+                                <span class="hud-value" id="hud-speed">-</span>
+                            </div>
+                            <div class="hud-card neon-blue">
+                                <span class="hud-label">BATSMAN SHOT</span>
+                                <span class="hud-value" id="hud-reaction">-</span>
+                            </div>
+                            <div class="hud-card neon-purple">
+                                <span class="hud-label">CONTACT</span>
+                                <span class="hud-value" id="hud-contact">-</span>
+                            </div>
+                            <div class="hud-card neon-green" id="hud-outcome-card">
+                                <span class="hud-label">RUNS / OUTCOME</span>
+                                <span class="hud-value" id="hud-runs">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+            
+            <!-- Right Panel: AI Clipboard & Win Probability -->
+            <section class="grid-panel panel-right">
+                <div class="panel-header">
+                    <svg class="panel-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10H7v-2h10v2zm0-4H7V7h10v2zm0 8H7v-2h10v2z"/></svg>
+                    <h2>Live Probability & AI Clipboard</h2>
+                </div>
+
+                <div class="panel-content scrollable">
+                    
+                    <!-- Live Win Probability Gauge -->
+                    <div class="win-prob-section">
+                        <h3>WIN PROBABILITY</h3>
+                        <div class="gauge-chart-container">
+                            <svg class="radial-gauge" viewBox="0 0 100 100">
+                                <circle class="gauge-bg" cx="50" cy="50" r="40" />
+                                <circle class="gauge-fill" id="win-prob-fill" cx="50" cy="50" r="40" stroke-dasharray="251.2" stroke-dashoffset="125.6" />
+                                <text class="gauge-text" id="win-prob-text" x="50" y="55">50%</text>
+                            </svg>
+                            <div class="gauge-labels">
+                                <div class="label-team-bat"><strong id="batting-team-label">Batting Team</strong><br><span id="bat-prob-display">50%</span></div>
+                                <div class="label-team-bowl"><strong id="bowling-team-label">Bowling Team</strong><br><span id="bowl-prob-display">50%</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Win Prob History Mini Chart -->
+                        <div class="history-chart-wrapper">
+                            <h4>Win Probability (Current Over)</h4>
+                            <svg class="sparkline" id="prob-history-chart" viewBox="0 0 300 80">
+                                <path class="sparkline-path" id="sparkline-path" d="M 0 40 L 50 40 L 100 40 L 150 40 L 200 40 L 250 40 L 300 40" />
+                                <circle class="sparkline-dot" id="sparkline-dot" cx="300" cy="40" r="4" />
+                            </svg>
+                            <div class="history-x-labels">
+                                <span>Ball 1</span>
+                                <span>Ball 2</span>
+                                <span>Ball 3</span>
+                                <span>Ball 4</span>
+                                <span>Ball 5</span>
+                                <span>Ball 6</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Captain clipboard -->
+                    <div class="ai-clipboard">
+                        <div class="clipboard-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H9M15 3H19C20.1046 3 21 3.89543 21 5V19C21 20.1046 20.1046 21 19 21H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                            <h3>AI COACH TACTICAL BRIEF</h3>
+                        </div>
+
+                        <div class="clipboard-content">
+                            <!-- Weakness summary -->
+                            <div class="bullet-point">
+                                <span class="bullet-tag red">WEAKNESS</span>
+                                <p id="ai-weakness-summary">Analyzing batsman profiles...</p>
+                            </div>
+                            
+                            <!-- Optimal Delivery Recommendation -->
+                            <div class="bullet-point">
+                                <span class="bullet-tag green">TACTIC</span>
+                                <div class="tactic-detail">
+                                    <strong>Optimal Delivery Target:</strong>
+                                    <div class="tactic-params" id="ai-optimal-delivery">
+                                        Loading recommendations...
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Field Suggestions -->
+                            <div class="bullet-point">
+                                <span class="bullet-tag cyan">FIELDING</span>
+                                <div class="fielding-detail">
+                                    <strong>Recommended Placements:</strong>
+                                    <ul id="ai-fielding-suggestions" class="fielding-list">
+                                        <li>Analyzing...</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+            
+        </main>
+    </div>
+    
+    <!-- Footer/Metadata -->
+    <footer class="app-footer">
+        <p>IPL AI-ML Analytics Platform &bull; Powered by Random Forest Predictors &bull; Coded in Vanilla CSS & HTML5 Canvas</p>
+    </footer>
+
+    <!-- App JavaScript -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
