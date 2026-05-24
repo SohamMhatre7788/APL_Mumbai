@@ -1,0 +1,73 @@
+{
+    "batsmen": [
+        "Shubman Gill",
+        "Virat Kohli",
+        "Rishabh Pant",
+        "MS Dhoni",
+        "Suryakumar Yadav",
+        "Rohit Sharma"
+    ],
+    "bowlers": [
+        "Jasprit Bumrah",
+        "Ravindra Jadeja",
+        "Mitchell Starc",
+        "Yuzvendra Chahal",
+        "Rashid Khan"
+    ],
+    "venues": [
+        "Eden Gardens (Kolkata)",
+        "M. Chinnaswamy Stadium (Bengaluru)",
+        "HPCA Stadium (Dharamshala)",
+        "M. A. Chidambaram Stadium (Chennai)",
+        "Rajiv Gandhi International Stadium (Hyderabad)",
+        "Arun Jaitley Stadium (Delhi)",
+        "Wankhede Stadium (Mumbai)",
+        "Narendra Modi Stadium (Ahmedabad)"
+    ],
+    "weather_conditions": [
+        "Sunny",
+        "Humid",
+        "Night (Dew)",
+        "Overcast"
+    ],
+    "ball_types": [
+        "Pink Ball",
+        "White Kookaburra",
+        "SG Test"
+    ],
+    "lines": [
+        "On the Off Stump",
+        "Middle Stump",
+        "Outside Off",
+        "Leg Stump",
+        "Outside Leg"
+    ],
+    "lengths": [
+        "Full",
+        "Yorker",
+        "Good Length",
+        "Short",
+        "Full Toss"
+    ],
+    "variations": [
+        "Cutter",
+        "Yorker",
+        "In-swinger",
+        "Googly",
+        "Bouncer",
+        "Leg-break",
+        "Normal",
+        "Out-swinger",
+        "Off-break"
+    ],
+    "reactions": [
+        "Drive",
+        "Glance",
+        "Defensive",
+        "Sweep",
+        "Lofted Shot",
+        "Ramp/Scoop",
+        "Slog",
+        "Pull/Hook"
+    ]
+}
