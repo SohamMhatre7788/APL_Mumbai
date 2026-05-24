@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let selectedY = 180;
     let winProbHistory = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5]; // Over history
     let ballCounter = 0;
+    let currentMode = "bowling";
     
     // Canvas Setup
     const canvas = document.getElementById("pitch-canvas");
@@ -22,6 +23,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const deliverySpeed = document.getElementById("delivery-speed");
     const speedVal = document.getElementById("speed-val");
     const simulateBtn = document.getElementById("simulate-btn");
+    
+    // Toggle / Live sync controls
+    const toggleBowlingBtn = document.getElementById("toggle-bowling-btn");
+    const toggleBattingBtn = document.getElementById("toggle-batting-btn");
+    const syncLiveBtn = document.getElementById("sync-live-btn");
+    const liveIndicatorBadge = document.getElementById("live-indicator-badge");
+    const liveMatchName = document.getElementById("live-match-name");
     
     // Match Condition Inputs
     const matchVenue = document.getElementById("match-venue");
@@ -399,6 +407,26 @@ document.addEventListener("DOMContentLoaded", () => {
         ballAge.addEventListener("change", updateAICoach);
         
         simulateBtn.addEventListener("click", triggerDeliverySimulation);
+        
+        // Mode toggle listeners
+        toggleBowlingBtn.addEventListener("click", () => {
+            if (currentMode === "bowling") return;
+            currentMode = "bowling";
+            toggleBowlingBtn.classList.add("active");
+            toggleBattingBtn.classList.remove("active");
+            updateAICoach();
+        });
+        
+        toggleBattingBtn.addEventListener("click", () => {
+            if (currentMode === "batting") return;
+            currentMode = "batting";
+            toggleBattingBtn.classList.add("active");
+            toggleBowlingBtn.classList.remove("active");
+            updateAICoach();
+        });
+        
+        // Live match sync listener
+        syncLiveBtn.addEventListener("click", syncLiveMatch);
     }
 
     // 4. AI Coach Tactical Clipboard
@@ -409,7 +437,8 @@ document.addEventListener("DOMContentLoaded", () => {
             weather: matchWeather.value,
             ball_type: ballType.value,
             ball_age: parseFloat(ballAge.value),
-            venue: matchVenue.value
+            venue: matchVenue.value,
+            mode: currentMode
         };
         
         try {
@@ -425,11 +454,20 @@ document.addEventListener("DOMContentLoaded", () => {
             aiWeaknessSummary.textContent = data.batsman_weakness_summary;
             
             const rec = data.top_recommendations[0];
-            aiOptimalDelivery.innerHTML = `
-                Pitch: <span class="highlight">${rec.length}</span> at <span class="highlight">${rec.line}</span><br>
-                Variation: <span class="highlight">${rec.variation}</span> (~${rec.speed_kph} kph)<br>
-                <span style="font-size:0.68rem; color:var(--text-dim)">Runs expectation: ${rec.expected_runs} | Wicket probability: ${(rec.wicket_probability*100).toFixed(1)}%</span>
-            `;
+            
+            if (currentMode === "bowling") {
+                aiOptimalDelivery.innerHTML = `
+                    Pitch: <span class="highlight">${rec.length}</span> at <span class="highlight">${rec.line}</span><br>
+                    Variation: <span class="highlight">${rec.variation}</span> (~${rec.speed_kph} kph)<br>
+                    <span style="font-size:0.68rem; color:var(--text-dim)">Runs expectation: ${rec.expected_runs} | Wicket probability: ${(rec.wicket_probability*100).toFixed(1)}%</span>
+                `;
+            } else {
+                aiOptimalDelivery.innerHTML = `
+                    Shot Recommendation: <span class="highlight">${rec.predicted_shot}</span><br>
+                    Expected Runs: <span class="highlight">${rec.expected_runs}</span><br>
+                    Wicket Risk: <span class="highlight">${(rec.wicket_probability*100).toFixed(1)}%</span>
+                `;
+            }
             
             aiFieldingSuggestions.innerHTML = "";
             data.field_suggestions.forEach(field => {
@@ -442,6 +480,97 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("AI coach loading error:", err);
             aiWeaknessSummary.textContent = "Error compiling profile.";
             aiOptimalDelivery.textContent = "Offline.";
+        }
+    }
+
+    // 4b. Live Cricbuzz Sync Logic
+    async function syncLiveMatch() {
+        syncLiveBtn.disabled = true;
+        const originalText = syncLiveBtn.innerHTML;
+        syncLiveBtn.innerHTML = `
+            <svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+            SYNCING...
+        `;
+        
+        try {
+            const response = await fetch("/api/live-match");
+            if (!response.ok) throw new Error("Sync failed");
+            const data = await response.json();
+            
+            // Update Match Conditions
+            matchVenue.value = data.venue;
+            matchWeather.value = data.weather;
+            matchInning.value = data.inning.toString();
+            matchOvers.value = data.overs.toString();
+            matchWickets.value = data.wickets.toString();
+            
+            if (data.inning === 2) {
+                targetRuns.value = data.target_runs;
+                runsNeeded.value = data.runs_needed;
+                ballsRemaining.value = data.balls_remaining;
+            }
+            
+            toggleInningsChaseFields();
+            
+            // Select players
+            let batsmanFound = false;
+            let bowlerFound = false;
+            
+            for (let option of batsmanSelect.options) {
+                if (option.value === data.batsman) {
+                    batsmanSelect.value = data.batsman;
+                    batsmanFound = true;
+                    break;
+                }
+            }
+            for (let option of bowlerSelect.options) {
+                if (option.value === data.bowler) {
+                    bowlerSelect.value = data.bowler;
+                    bowlerFound = true;
+                    break;
+                }
+            }
+            
+            if (!batsmanFound) {
+                for (let option of batsmanSelect.options) {
+                    if (option.value.toLowerCase().includes(data.batsman.toLowerCase()) || data.batsman.toLowerCase().includes(option.value.toLowerCase())) {
+                        batsmanSelect.value = option.value;
+                        break;
+                    }
+                }
+            }
+            if (!bowlerFound) {
+                for (let option of bowlerSelect.options) {
+                    if (option.value.toLowerCase().includes(data.bowler.toLowerCase()) || data.bowler.toLowerCase().includes(option.value.toLowerCase())) {
+                        bowlerSelect.value = option.value;
+                        break;
+                    }
+                }
+            }
+            
+            updateBatsmanProfile();
+            updateBowlerProfile();
+            
+            // Update HUD text & status
+            if (data.is_live) {
+                liveIndicatorBadge.textContent = "🔴 LIVE MATCH ACTIVE";
+                liveIndicatorBadge.classList.add("live-active");
+            } else {
+                liveIndicatorBadge.textContent = "⚪ SIMULATION MODE (Cached)";
+                liveIndicatorBadge.classList.remove("live-active");
+            }
+            liveMatchName.textContent = data.match_name;
+            
+            await updateAICoach();
+            await updateWinProbability();
+            drawStaticPitch();
+            
+        } catch (err) {
+            console.error("Live match sync failed:", err);
+            alert("Failed to sync live match. Please check server logs.");
+        } finally {
+            syncLiveBtn.disabled = false;
+            syncLiveBtn.innerHTML = originalText;
         }
     }
 

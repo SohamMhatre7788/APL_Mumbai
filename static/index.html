@@ -29,8 +29,28 @@
             <div class="status-indicator">
                 <span class="pulse-dot"></span>
                 <span id="model-status-text">AI MODEL: ONLINE</span>
-            </div>
         </header>
+
+        <!-- Live Match HUD Bar -->
+        <section class="live-match-hud-bar">
+            <div class="hud-status-area">
+                <span class="live-blink-badge" id="live-indicator-badge">⚪ SIMULATION MODE (No Active Matches)</span>
+                <span class="hud-match-title" id="live-match-name">Wankhede Stadium Simulation</span>
+            </div>
+            
+            <div class="hud-controls-area">
+                <button class="action-button sync-btn" id="sync-live-btn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l.73-.73"/></svg>
+                    SYNC LIVE MATCH
+                </button>
+                
+                <div class="strategy-toggle-group">
+                    <span class="toggle-label">Tactical View:</span>
+                    <button class="toggle-btn active" id="toggle-bowling-btn">BOWLING TEAM</button>
+                    <button class="toggle-btn" id="toggle-batting-btn">BATTING TEAM</button>
+                </div>
+            </div>
+        </section>
 
         <!-- Main Workspace Grid -->
         <main class="dashboard-grid">

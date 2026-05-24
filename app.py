@@ -135,8 +135,225 @@ class RecommendationInput(BaseModel):
     ball_type: str
     ball_age: float
     venue: str
+    mode: Optional[str] = "bowling" # "bowling" or "batting"
 
-# Routes
+# Helper function for live cricbuzz match scraping
+def get_mock_live_match(reason: str):
+    print(f"Fallback to mock live match. Reason: {reason}")
+    return {
+        'is_live': False,
+        'match_name': "MI vs CSK, IPL Rivalry (Simulation Cache)",
+        'venue': "Wankhede Stadium (Mumbai)",
+        'weather': "Night (Dew)",
+        'inning': 2,
+        'overs': 17.2,
+        'wickets': 6,
+        'runs_needed': 32,
+        'balls_remaining': 16,
+        'target_runs': 185,
+        'current_score': 153,
+        'batsman': "MS Dhoni",
+        'bowler': "Jasprit Bumrah",
+        'weather_details': {'temp_C': '31', 'humidity': '72%', 'desc': 'Partly cloudy'}
+    }
+
+def fetch_live_match_state():
+    import urllib.request
+    import urllib.parse
+    import re
+    
+    url = "https://www.cricbuzz.com/cricket-match/live-scores"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+    req = urllib.request.Request(url, headers=headers)
+    try:
+        with urllib.request.urlopen(req) as response:
+            html = response.read().decode('utf-8')
+            
+        # Parse match score pages
+        links = re.findall(r'href="(/live-cricket-scores/\d+/[^"]+)"', html)
+        if not links:
+            return get_mock_live_match("No live matches found on Cricbuzz.")
+            
+        # Filter for IPL / T20 matches
+        ipl_links = [l for l in links if 'premier-league' in l.lower() or 'ipl' in l.lower()]
+        target_link = ipl_links[0] if ipl_links else links[0]
+        
+        match_url = f"https://www.cricbuzz.com{target_link}"
+        req_detail = urllib.request.Request(match_url, headers=headers)
+        with urllib.request.urlopen(req_detail) as response_detail:
+            detail_html = response_detail.read().decode('utf-8')
+            
+        # Extract meta description
+        meta_match = re.search(r'<meta\s+name="description"\s+content="([^"]+)"', detail_html)
+        if not meta_match:
+            return get_mock_live_match("Could not extract meta description from Cricbuzz page.")
+        
+        desc = meta_match.group(1).replace('\n', ' ').strip()
+        
+        # Match venue and city
+        stadiums = [
+            'Wankhede Stadium (Mumbai)',
+            'Eden Gardens (Kolkata)',
+            'M. Chinnaswamy Stadium (Bengaluru)',
+            'M. A. Chidambaram Stadium (Chennai)',
+            'Narendra Modi Stadium (Ahmedabad)',
+            'Rajiv Gandhi International Stadium (Hyderabad)',
+            'Arun Jaitley Stadium (Delhi)',
+            'HPCA Stadium (Dharamshala)'
+        ]
+        
+        selected_venue = "Wankhede Stadium (Mumbai)"
+        city = "Mumbai"
+        for v in stadiums:
+            short_name = v.split(" Stadium")[0]
+            if short_name.lower() in detail_html.lower():
+                selected_venue = v
+                city_match = re.search(r'\(([^)]+)\)', v)
+                if city_match:
+                    city = city_match.group(1)
+                break
+                
+        # Weather Lookup
+        weather_category = "Sunny"
+        weather_details = {'temp_C': '30', 'humidity': '60%', 'desc': 'Clear'}
+        try:
+            weather_url = f"http://wttr.in/{urllib.parse.quote(city)}?format=j1"
+            w_req = urllib.request.Request(weather_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(w_req) as w_resp:
+                w_data = json.loads(w_resp.read().decode('utf-8'))
+                curr = w_data['current_condition'][0]
+                temp = curr['temp_C']
+                humidity_val = int(curr['humidity'])
+                desc_text = curr['weatherDesc'][0]['value']
+                weather_details = {'temp_C': temp, 'humidity': f"{humidity_val}%", 'desc': desc_text}
+                
+                if "rain" in desc_text.lower() or "cloud" in desc_text.lower() or "overcast" in desc_text.lower():
+                    weather_category = "Overcast"
+                elif humidity_val > 70:
+                    weather_category = "Humid"
+                else:
+                    weather_category = "Sunny"
+                    
+                if humidity_val > 60:
+                    weather_category = "Night (Dew)"
+        except Exception as we:
+            print("Failed to fetch weather:", we)
+
+        # Parse match score patterns: TEAM runs/wickets (overs)
+        score_patterns = re.findall(r'([A-Za-z\d\-]+)\s+(\d+)/(\d+)\s*\((\d+\.?\d*)\)', desc)
+        if not score_patterns:
+            score_patterns = re.findall(r'([A-Za-z\d\-]+)\s+(\d+)-(\d+)\s*\((\d+\.?\d*)\)', desc)
+            
+        inning = 1
+        runs_needed = 0
+        balls_remaining = 120
+        target_runs = 0
+        current_score = 0
+        wickets = 0
+        overs = 0.1
+        
+        if len(score_patterns) >= 2:
+            inning = 2
+            team1, runs1, wickets1, overs1 = score_patterns[0]
+            team2, runs2, wickets2, overs2 = score_patterns[1]
+            
+            target_runs = int(runs1) + 1
+            current_score = int(runs2)
+            wickets = int(wickets2)
+            overs = float(overs2)
+            
+            need_match = re.search(r'need\s+(\d+)\s+runs\s+in\s+(\d+)\s+balls', desc, re.I)
+            if need_match:
+                runs_needed = int(need_match.group(1))
+                balls_remaining = int(need_match.group(2))
+            else:
+                runs_needed = max(1, target_runs - current_score)
+                int_overs = int(overs)
+                balls_bowled = int((overs - int_overs) * 10)
+                balls_remaining = max(1, 120 - (int_overs * 6 + balls_bowled))
+        elif len(score_patterns) == 1:
+            team1, runs1, wickets1, overs1 = score_patterns[0]
+            current_score = int(runs1)
+            wickets = int(wickets1)
+            overs = float(overs1)
+            
+            need_match = re.search(r'need\s+(\d+)\s+runs\s+in\s+(\d+)\s+balls', desc, re.I)
+            if need_match:
+                inning = 2
+                runs_needed = int(need_match.group(1))
+                balls_remaining = int(need_match.group(2))
+                target_runs = current_score + runs_needed
+            else:
+                inning = 1
+                runs_needed = 0
+                balls_remaining = max(1, 120 - int(int(overs) * 6 + (overs - int(overs)) * 10))
+                target_runs = 0
+                
+        # Parse active batters
+        batsman_list = []
+        batsmen_in_parenthesis = re.search(r'\(([^)]+)\)', desc)
+        if batsmen_in_parenthesis:
+            names = re.findall(r'([A-Za-z\s]+)\s+\d+\(\d+\)', batsmen_in_parenthesis.group(1))
+            batsman_list = [n.strip() for n in names if n.strip()]
+            
+        selected_batsman = "Virat Kohli"
+        selected_bowler = "Jasprit Bumrah"
+        
+        db_batsmen = ['Virat Kohli', 'Rohit Sharma', 'MS Dhoni', 'Suryakumar Yadav', 'Rishabh Pant', 'Shubman Gill']
+        db_bowlers = ['Jasprit Bumrah', 'Rashid Khan', 'Mitchell Starc', 'Yuzvendra Chahal', 'Ravindra Jadeja']
+        
+        batsman_mapped = False
+        for b in batsman_list:
+            for db_b in db_batsmen:
+                last_name = db_b.split(" ")[-1]
+                first_name = db_b.split(" ")[0]
+                if last_name.lower() in b.lower() or first_name.lower() in b.lower():
+                    selected_batsman = db_b
+                    batsman_mapped = True
+                    break
+            if batsman_mapped:
+                break
+                
+        bowler_mapped = False
+        for db_b in db_bowlers:
+            last_name = db_b.split(" ")[-1]
+            if last_name.lower() in detail_html.lower():
+                selected_bowler = db_b
+                bowler_mapped = True
+                break
+                
+        match_title = re.search(r'<title>([^<]+)</title>', detail_html)
+        match_name = match_title.group(1).split(" | ")[-1] if match_title else "Live Cricbuzz Match"
+        if "Commentary" in match_name:
+            match_name = match_name.split("Commentary - ")[-1]
+            
+        return {
+            'is_live': True,
+            'match_name': match_name,
+            'venue': selected_venue,
+            'weather': weather_category,
+            'inning': inning,
+            'overs': overs,
+            'wickets': wickets,
+            'runs_needed': runs_needed,
+            'balls_remaining': balls_remaining,
+            'target_runs': target_runs,
+            'current_score': current_score,
+            'batsman': selected_batsman,
+            'bowler': selected_bowler,
+            'weather_details': weather_details
+        }
+    except Exception as e:
+        print("Scraper error, falling back:", e)
+        return get_mock_live_match(f"Scraper error: {e}")
+
+# Live match API endpoint
+@app.get("/api/live-match")
+def get_live_match():
+    """Sync and parse live scores and weather parameters from cricbuzz and wttr.in."""
+    state = fetch_live_match_state()
+    return JSONResponse(content=state)
+
 @app.get("/api/players")
 def get_players():
     """Retrieve all available players and their details."""
@@ -282,127 +499,237 @@ def predict_win_prob(payload: WinProbabilityInput):
 
 @app.post("/api/tactical-recommendation")
 def get_recommendation(payload: RecommendationInput):
-    """Perform a grid search over delivery parameters to find the optimal ball against this batsman."""
+    """Perform a search over delivery parameters to find optimal actions for batting or bowling team."""
     try:
         react_model = get_model("batsman_reaction_model")
         runs_model = get_model("runs_model")
         wick_model = get_model("wicket_model")
         
-        bowler_info = PLAYER_DETAILS[payload.bowler]
-        
-        # Setup search space
-        lines = ['Outside Off', 'On the Off Stump', 'Middle Stump', 'Leg Stump', 'Outside Leg']
-        lengths = ['Short', 'Good Length', 'Full', 'Yorker', 'Full Toss']
-        variations = bowler_info.get('variations', ['Normal'])
-        
-        avg_speed = (bowler_info.get('speed_min', 120) + bowler_info.get('speed_max', 140)) / 2
-        speeds = [avg_speed]
-        if 'Cutter' in variations or 'Slower ball' in variations:
-            speeds.append(avg_speed - 20.0)
-        if len(speeds) == 1:
-            speeds.append(avg_speed - 5.0)
+        # Bowling Strategy Mode
+        if payload.mode == "bowling":
+            bowler_info = PLAYER_DETAILS[payload.bowler]
             
-        recommendations = []
-        
-        # Grid search
-        for line in lines:
-            for length in lengths:
-                for var in variations:
-                    for speed in speeds:
-                        react_df = pd.DataFrame([{
-                            'batsman': payload.batsman,
-                            'bowler': payload.bowler,
-                            'bowling_speed_kph': speed,
-                            'bowling_path_type': var,
-                            'pitch_line': line,
-                            'pitch_length': length,
-                            'weather': payload.weather,
-                            'ball_type': payload.ball_type,
-                            'ball_age': payload.ball_age,
-                            'inning': 2,
-                            'overs': 10.0,
-                            'wickets': 3,
-                            'venue': payload.venue
-                        }])
-                        
-                        pred_shot = react_model.predict(react_df)[0]
-                        
+            # Setup search space
+            lines = ['Outside Off', 'On the Off Stump', 'Middle Stump', 'Leg Stump', 'Outside Leg']
+            lengths = ['Short', 'Good Length', 'Full', 'Yorker', 'Full Toss']
+            variations = bowler_info.get('variations', ['Normal'])
+            
+            avg_speed = (bowler_info.get('speed_min', 120) + bowler_info.get('speed_max', 140)) / 2
+            speeds = [avg_speed]
+            if 'Cutter' in variations or 'Slower ball' in variations:
+                speeds.append(avg_speed - 20.0)
+            if len(speeds) == 1:
+                speeds.append(avg_speed - 5.0)
+                
+            recommendations = []
+            
+            for line in lines:
+                for length in lengths:
+                    for var in variations:
+                        for speed in speeds:
+                            react_df = pd.DataFrame([{
+                                'batsman': payload.batsman,
+                                'bowler': payload.bowler,
+                                'bowling_speed_kph': speed,
+                                'bowling_path_type': var,
+                                'pitch_line': line,
+                                'pitch_length': length,
+                                'weather': payload.weather,
+                                'ball_type': payload.ball_type,
+                                'ball_age': payload.ball_age,
+                                'inning': 2,
+                                'overs': 10.0,
+                                'wickets': 3,
+                                'venue': payload.venue
+                            }])
+                            
+                            pred_shot = react_model.predict(react_df)[0]
+                            
+                            out_df = pd.DataFrame([{
+                                'batsman': payload.batsman,
+                                'bowler': payload.bowler,
+                                'bowling_speed_kph': speed,
+                                'bowling_path_type': var,
+                                'pitch_line': line,
+                                'pitch_length': length,
+                                'weather': payload.weather,
+                                'ball_type': payload.ball_type,
+                                'ball_age': payload.ball_age,
+                                'batsman_reaction': pred_shot,
+                                'venue': payload.venue
+                            }])
+                            
+                            runs_probs = runs_model.predict_proba(out_df)[0]
+                            runs_classes = runs_model.classes_
+                            expected_runs = float(sum(p * c for p, c in zip(runs_probs, runs_classes)))
+                            
+                            wick_probs = wick_model.predict_proba(out_df)[0]
+                            wicket_prob = float(wick_probs[1]) if len(wick_probs) > 1 else 0.0
+                            
+                            tactical_score = (wicket_prob * 15.0) - expected_runs
+                            
+                            recommendations.append({
+                                'line': line,
+                                'length': length,
+                                'variation': var,
+                                'speed_kph': round(speed, 1),
+                                'expected_runs': round(expected_runs, 2),
+                                'wicket_probability': round(wicket_prob, 3),
+                                'predicted_shot': pred_shot,
+                                'tactical_score': tactical_score
+                            })
+                            
+            recommendations.sort(key=lambda x: x['tactical_score'], reverse=True)
+            top_3 = recommendations[:3]
+            primary_rec = top_3[0]
+            shot = primary_rec['predicted_shot']
+            
+            field_suggestions = []
+            if shot in ['Pull/Hook', 'Slog']:
+                field_suggestions = ["Deep Mid-Wicket", "Deep Square Leg", "Long On", "Deep Fine Leg"]
+            elif shot in ['Drive', 'Lofted Shot']:
+                field_suggestions = ["Mid Off (Cover)", "Extra Cover", "Long Off", "Point"]
+            elif shot == 'Sweep':
+                field_suggestions = ["Deep Square Leg", "Short Fine Leg", "Mid-Wicket"]
+            elif shot in ['Ramp/Scoop']:
+                field_suggestions = ["Fine Leg", "Third Man", "Short Fine Leg"]
+            else:
+                field_suggestions = ["Silly Point", "Short Leg", "Slip", "Wicketkeeper tight"]
+                
+            if payload.ball_age < 4.0 and primary_rec['variation'] in ['In-swinger', 'Out-swinger']:
+                field_suggestions.insert(0, "First Slip")
+                if len(field_suggestions) > 4:
+                    field_suggestions.pop()
+                    
+            ground_advice = ""
+            if "Chennai" in payload.venue:
+                ground_advice = " Chennai pitch offers significant turn. Focus on slow variations."
+            elif "Bengaluru" in payload.venue:
+                ground_advice = " Small boundary dimensions here at Chinnaswamy! Protect boundary lines."
+            elif "Dharamshala" in payload.venue:
+                ground_advice = " High altitude and cool air helper! Utilize quick swinging deliveries."
+            elif "Mumbai" in payload.venue:
+                ground_advice = " Red soil pitch with good bounce. Short bouncers can induce top edges."
+                
+            return JSONResponse(content={
+                'top_recommendations': top_3,
+                'field_suggestions': field_suggestions[:4],
+                'batsman_weakness_summary': f"Vulnerable to {', '.join(PLAYER_DETAILS[payload.batsman]['weakness_lengths'])} lengths. {ground_advice}"
+            })
+            
+        # Batting Strategy Mode
+        else:
+            batsman_info = PLAYER_DETAILS[payload.batsman]
+            preferred_shots = batsman_info.get('preferred_shots', ['Defensive', 'Drive'])
+            
+            # Search space for typical bowler deliveries
+            lines = ['Outside Off', 'On the Off Stump', 'Middle Stump', 'Leg Stump']
+            lengths = ['Short', 'Good Length', 'Full', 'Yorker']
+            
+            # Bowler properties
+            bowler_info = PLAYER_DETAILS[payload.bowler]
+            variations = bowler_info.get('variations', ['Normal'])
+            avg_speed = (bowler_info.get('speed_min', 120) + bowler_info.get('speed_max', 140)) / 2
+            
+            shot_recommendations = []
+            
+            # Evaluate how each preferred shot performs against the range of bowler variations
+            for shot in preferred_shots:
+                expected_runs_list = []
+                wicket_prob_list = []
+                
+                # Grid sample of delivery types
+                for line in lines:
+                    for length in lengths:
+                        for var in variations:
+                            out_df = pd.DataFrame([{
+                                'batsman': payload.batsman,
+                                'bowler': payload.bowler,
+                                'bowling_speed_kph': avg_speed,
+                                'bowling_path_type': var,
+                                'pitch_line': line,
+                                'pitch_length': length,
+                                'weather': payload.weather,
+                                'ball_type': payload.ball_type,
+                                'ball_age': payload.ball_age,
+                                'batsman_reaction': shot,
+                                'venue': payload.venue
+                            }])
+                            
+                            runs_probs = runs_model.predict_proba(out_df)[0]
+                            runs_classes = runs_model.classes_
+                            expected_runs = float(sum(p * c for p, c in zip(runs_probs, runs_classes)))
+                            
+                            wick_probs = wick_model.predict_proba(out_df)[0]
+                            wicket_prob = float(wick_probs[1]) if len(wick_probs) > 1 else 0.0
+                            
+                            expected_runs_list.append(expected_runs)
+                            wicket_prob_list.append(wicket_prob)
+                            
+                avg_runs = float(np.mean(expected_runs_list))
+                avg_wick = float(np.mean(wicket_prob_list))
+                # Batting score: maximize runs, minimize wicket chance
+                batting_score = avg_runs - (avg_wick * 20.0)
+                
+                shot_recommendations.append({
+                    'shot': shot,
+                    'expected_runs': round(avg_runs, 2),
+                    'wicket_probability': round(avg_wick, 3),
+                    'batting_score': batting_score
+                })
+                
+            shot_recommendations.sort(key=lambda x: x['batting_score'], reverse=True)
+            
+            # Find the most dangerous delivery (max wicket probability for the batsman)
+            max_wick_prob = -1.0
+            danger_ball = ""
+            
+            for line in lines:
+                for length in lengths:
+                    for var in variations:
                         out_df = pd.DataFrame([{
                             'batsman': payload.batsman,
                             'bowler': payload.bowler,
-                            'bowling_speed_kph': speed,
+                            'bowling_speed_kph': avg_speed,
                             'bowling_path_type': var,
                             'pitch_line': line,
                             'pitch_length': length,
                             'weather': payload.weather,
                             'ball_type': payload.ball_type,
                             'ball_age': payload.ball_age,
-                            'batsman_reaction': pred_shot,
+                            'batsman_reaction': 'Drive', # baseline
                             'venue': payload.venue
                         }])
-                        
-                        runs_probs = runs_model.predict_proba(out_df)[0]
-                        runs_classes = runs_model.classes_
-                        expected_runs = float(sum(p * c for p, c in zip(runs_probs, runs_classes)))
-                        
                         wick_probs = wick_model.predict_proba(out_df)[0]
-                        wicket_prob = float(wick_probs[1]) if len(wick_probs) > 1 else 0.0
-                        
-                        # Score formula: maximize wickets, minimize expected runs
-                        tactical_score = (wicket_prob * 15.0) - expected_runs
-                        
-                        recommendations.append({
-                            'line': line,
-                            'length': length,
-                            'variation': var,
-                            'speed_kph': round(speed, 1),
-                            'expected_runs': round(expected_runs, 2),
-                            'wicket_probability': round(wicket_prob, 3),
-                            'predicted_shot': pred_shot,
-                            'tactical_score': tactical_score
-                        })
-                        
-        # Sort and select best
-        recommendations.sort(key=lambda x: x['tactical_score'], reverse=True)
-        top_3 = recommendations[:3]
-        
-        primary_rec = top_3[0]
-        shot = primary_rec['predicted_shot']
-        
-        field_suggestions = []
-        if shot in ['Pull/Hook', 'Slog']:
-            field_suggestions = ["Deep Mid-Wicket", "Deep Square Leg", "Long On", "Deep Fine Leg"]
-        elif shot in ['Drive', 'Lofted Shot']:
-            field_suggestions = ["Mid Off (Cover)", "Extra Cover", "Long Off", "Point"]
-        elif shot == 'Sweep':
-            field_suggestions = ["Deep Square Leg", "Short Fine Leg", "Mid-Wicket"]
-        elif shot in ['Ramp/Scoop']:
-            field_suggestions = ["Fine Leg", "Third Man", "Short Fine Leg"]
-        else:
-            field_suggestions = ["Silly Point", "Short Leg", "Slip", "Wicketkeeper tight"]
-            
-        if payload.ball_age < 4.0 and primary_rec['variation'] in ['In-swinger', 'Out-swinger']:
-            field_suggestions.insert(0, "First Slip")
-            if len(field_suggestions) > 4:
-                field_suggestions.pop()
+                        w_prob = float(wick_probs[1]) if len(wick_probs) > 1 else 0.0
+                        if w_prob > max_wick_prob:
+                            max_wick_prob = w_prob
+                            danger_ball = f"{var} ({length} at {line})"
+                            
+            # Convert recommendations format to match top_recommendations schema
+            top_rec = []
+            for r in shot_recommendations[:3]:
+                top_rec.append({
+                    'line': 'Varies',
+                    'length': 'Varies',
+                    'variation': r['shot'],
+                    'speed_kph': avg_speed,
+                    'expected_runs': r['expected_runs'],
+                    'wicket_probability': r['wicket_probability'],
+                    'predicted_shot': r['shot'],
+                    'tactical_score': r['batting_score']
+                })
                 
-        # Generate specific tactical advice based on ground properties
-        ground_advice = ""
-        if "Chennai" in payload.venue:
-            ground_advice = " Chennai pitch offers significant turn. Focus on slow variations."
-        elif "Bengaluru" in payload.venue:
-            ground_advice = " Small boundary dimensions here at Chinnaswamy! Protect boundary lines."
-        elif "Dharamshala" in payload.venue:
-            ground_advice = " High altitude and cool air helper! Utilize quick swinging deliveries."
-        elif "Mumbai" in payload.venue:
-            ground_advice = " Red soil pitch with good bounce. Short bouncers can induce top edges."
+            field_suggestions = ["Vulnerable Areas:", "Protect Off Stump", "Avoid Bouncer Pulls"]
+            if len(batsman_info.get('weakness_lines', [])) > 0:
+                field_suggestions.append(f"Line Weakness: {batsman_info['weakness_lines'][0]}")
+                
+            return JSONResponse(content={
+                'top_recommendations': top_rec,
+                'field_suggestions': field_suggestions[:4],
+                'batsman_weakness_summary': f"Hazard Alert! {payload.bowler}'s most dangerous ball is {danger_ball} with a {(max_wick_prob*100):.1f}% wicket rate."
+            })
             
-        return JSONResponse(content={
-            'top_recommendations': top_3,
-            'field_suggestions': field_suggestions[:4],
-            'batsman_weakness_summary': f"Vulnerable to {', '.join(PLAYER_DETAILS[payload.batsman]['weakness_lengths'])} lengths. {ground_advice}"
-        })
-        
     except Exception as e:
         import traceback
         traceback.print_exc()
