@@ -7,7 +7,11 @@ import json
 # Load players from players_database.json
 db_path = 'data/players_database.json'
 if not os.path.exists(db_path):
-    db_path = os.path.join(os.path.dirname(__file__), 'players_database.json')
+    try:
+        db_path = os.path.join(os.path.dirname(__file__), 'players_database.json')
+    except NameError:
+        # Notebook environment fallback where __file__ is undefined
+        db_path = 'players_database.json'
 
 with open(db_path, 'r') as f:
     db = json.load(f)
