@@ -1,28 +1,44 @@
 {
     "batsmen": [
-        "Shubman Gill",
+        "Nicholas Pooran",
+        "Heinrich Klaasen",
+        "Suryakumar Yadav",
+        "Rohit Sharma",
+        "Sunil Narine",
+        "Yashasvi Jaiswal",
+        "Ruturaj Gaikwad",
         "Virat Kohli",
         "Rishabh Pant",
         "MS Dhoni",
-        "Suryakumar Yadav",
-        "Rohit Sharma"
+        "Hardik Pandya",
+        "Travis Head",
+        "Sanju Samson",
+        "Shubman Gill",
+        "Rinku Singh"
     ],
     "bowlers": [
-        "Jasprit Bumrah",
-        "Ravindra Jadeja",
-        "Mitchell Starc",
+        "Rashid Khan",
+        "Matheesha Pathirana",
+        "Trent Boult",
+        "Kuldeep Yadav",
         "Yuzvendra Chahal",
-        "Rashid Khan"
+        "Arshdeep Singh",
+        "Jasprit Bumrah",
+        "Mitchell Starc",
+        "Pat Cummins",
+        "Ravindra Jadeja",
+        "Ravi Bishnoi",
+        "Mohammed Siraj"
     ],
     "venues": [
         "Eden Gardens (Kolkata)",
-        "M. Chinnaswamy Stadium (Bengaluru)",
-        "HPCA Stadium (Dharamshala)",
+        "Wankhede Stadium (Mumbai)",
+        "Narendra Modi Stadium (Ahmedabad)",
         "M. A. Chidambaram Stadium (Chennai)",
         "Rajiv Gandhi International Stadium (Hyderabad)",
+        "HPCA Stadium (Dharamshala)",
         "Arun Jaitley Stadium (Delhi)",
-        "Wankhede Stadium (Mumbai)",
-        "Narendra Modi Stadium (Ahmedabad)"
+        "M. Chinnaswamy Stadium (Bengaluru)"
     ],
     "weather_conditions": [
         "Sunny",
@@ -37,37 +53,38 @@
     ],
     "lines": [
         "On the Off Stump",
-        "Middle Stump",
         "Outside Off",
+        "Middle Stump",
         "Leg Stump",
         "Outside Leg"
     ],
     "lengths": [
         "Full",
-        "Yorker",
         "Good Length",
+        "Yorker",
         "Short",
         "Full Toss"
     ],
     "variations": [
         "Cutter",
-        "Yorker",
+        "Slower ball",
         "In-swinger",
-        "Googly",
-        "Bouncer",
         "Leg-break",
+        "Googly",
+        "Yorker",
         "Normal",
+        "Bouncer",
         "Out-swinger",
         "Off-break"
     ],
     "reactions": [
         "Drive",
-        "Glance",
-        "Defensive",
-        "Sweep",
-        "Lofted Shot",
-        "Ramp/Scoop",
         "Slog",
-        "Pull/Hook"
+        "Defensive",
+        "Lofted Shot",
+        "Pull/Hook",
+        "Sweep",
+        "Glance",
+        "Ramp/Scoop"
     ]
 }

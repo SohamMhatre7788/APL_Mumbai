@@ -141,14 +141,9 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("bowler-speed-bar").style.width = `${details.speed_rating}%`;
         document.getElementById("bowler-deception-bar").style.width = `${details.deception_rating}%`;
         
-        // Populate variations based on bowler characteristics
+        // Populate variations based on bowler characteristics dynamically from player database
         deliveryVariation.innerHTML = "";
-        let vars = ["Normal"];
-        if (name === "Jasprit Bumrah") vars = ['Yorker', 'Bouncer', 'In-swinger', 'Out-swinger', 'Cutter'];
-        else if (name === "Rashid Khan") vars = ['Googly', 'Leg-break', 'Cutter'];
-        else if (name === "Mitchell Starc") vars = ['In-swinger', 'Out-swinger', 'Yorker', 'Bouncer'];
-        else if (name === "Yuzvendra Chahal") vars = ['Leg-break', 'Googly', 'Normal'];
-        else if (name === "Ravindra Jadeja") vars = ['Normal', 'Cutter', 'Off-break'];
+        let vars = details.variations || ["Normal"];
         
         vars.forEach(v => {
             const opt = document.createElement("option");

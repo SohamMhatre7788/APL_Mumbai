@@ -2,81 +2,42 @@ import os
 import random
 import numpy as np
 import pandas as pd
+import json
 
-# Define players database with realistic parameters
+# Load players from players_database.json
+db_path = 'data/players_database.json'
+if not os.path.exists(db_path):
+    db_path = os.path.join(os.path.dirname(__file__), 'players_database.json')
+
+with open(db_path, 'r') as f:
+    db = json.load(f)
+
 PLAYERS = {
-    'batsmen': {
-        'Virat Kohli': {
-            'hand': 'Right', 'style': 'Anchor', 'form': 0.92,
-            'pace_skill': 0.90, 'spin_skill': 0.82,
-            'weakness_lines': ['Outside Off'], 'weakness_lengths': ['Good Length'], 'weakness_paths': ['Out-swinger'],
-            'preferred_shots': ['Drive', 'Glance', 'Defensive', 'Lofted Shot'],
-            'shot_weights': [0.4, 0.2, 0.25, 0.15]
-        },
-        'Rohit Sharma': {
-            'hand': 'Right', 'style': 'Aggressive', 'form': 0.82,
-            'pace_skill': 0.88, 'spin_skill': 0.76,
-            'weakness_lines': ['Middle Stump', 'Leg Stump'], 'weakness_lengths': ['Yorker', 'Good Length'], 'weakness_paths': ['In-swinger'],
-            'preferred_shots': ['Pull/Hook', 'Drive', 'Slog', 'Defensive'],
-            'shot_weights': [0.35, 0.3, 0.2, 0.15]
-        },
-        'MS Dhoni': {
-            'hand': 'Right', 'style': 'Finisher', 'form': 0.86,
-            'pace_skill': 0.78, 'spin_skill': 0.92,
-            'weakness_lines': ['Outside Off'], 'weakness_lengths': ['Short', 'Good Length'], 'weakness_paths': ['Bouncer', 'Out-swinger'],
-            'preferred_shots': ['Slog', 'Ramp/Scoop', 'Defensive', 'Drive'],
-            'shot_weights': [0.3, 0.25, 0.3, 0.15]
-        },
-        'Suryakumar Yadav': {
-            'hand': 'Right', 'style': 'Aggressive', 'form': 0.94,
-            'pace_skill': 0.92, 'spin_skill': 0.90,
-            'weakness_lines': ['Outside Off'], 'weakness_lengths': ['Short'], 'weakness_paths': ['Bouncer'],
-            'preferred_shots': ['Ramp/Scoop', 'Sweep', 'Lofted Shot', 'Drive'],
-            'shot_weights': [0.3, 0.3, 0.25, 0.15]
-        },
-        'Rishabh Pant': {
-            'hand': 'Left', 'style': 'Aggressive', 'form': 0.78,
-            'pace_skill': 0.80, 'spin_skill': 0.88,
-            'weakness_lines': ['Outside Off'], 'weakness_lengths': ['Good Length'], 'weakness_paths': ['Out-swinger', 'Cutter'],
-            'preferred_shots': ['Sweep', 'Lofted Shot', 'Slog', 'Defensive'],
-            'shot_weights': [0.25, 0.3, 0.3, 0.15]
-        },
-        'Shubman Gill': {
-            'hand': 'Right', 'style': 'Anchor', 'form': 0.85,
-            'pace_skill': 0.88, 'spin_skill': 0.80,
-            'weakness_lines': ['Middle Stump'], 'weakness_lengths': ['Short'], 'weakness_paths': ['Bouncer'],
-            'preferred_shots': ['Drive', 'Pull/Hook', 'Glance', 'Defensive'],
-            'shot_weights': [0.4, 0.2, 0.2, 0.2]
-        }
-    },
-    'bowlers': {
-        'Jasprit Bumrah': {
-            'type': 'Fast', 'hand': 'Right', 'speed_min': 138, 'speed_max': 152, 'form': 0.96,
-            'control': 0.94, 'variations': ['Yorker', 'Bouncer', 'In-swinger', 'Out-swinger', 'Cutter'],
-            'var_weights': [0.3, 0.2, 0.2, 0.15, 0.15]
-        },
-        'Rashid Khan': {
-            'type': 'LegSpin', 'hand': 'Right', 'speed_min': 92, 'speed_max': 102, 'form': 0.90,
-            'control': 0.88, 'variations': ['Googly', 'Leg-break', 'Cutter'],
-            'var_weights': [0.45, 0.45, 0.1]
-        },
-        'Mitchell Starc': {
-            'type': 'LeftArmFast', 'hand': 'Left', 'speed_min': 136, 'speed_max': 148, 'form': 0.82,
-            'control': 0.80, 'variations': ['In-swinger', 'Out-swinger', 'Yorker', 'Bouncer'],
-            'var_weights': [0.35, 0.3, 0.2, 0.15]
-        },
-        'Yuzvendra Chahal': {
-            'type': 'LegSpin', 'hand': 'Right', 'speed_min': 78, 'speed_max': 88, 'form': 0.78,
-            'control': 0.78, 'variations': ['Leg-break', 'Googly', 'Normal'],
-            'var_weights': [0.5, 0.3, 0.2]
-        },
-        'Ravindra Jadeja': {
-            'type': 'Ortho', 'hand': 'Left', 'speed_min': 86, 'speed_max': 96, 'form': 0.86,
-            'control': 0.92, 'variations': ['Normal', 'Cutter', 'Off-break'],
-            'var_weights': [0.6, 0.3, 0.1]
-        }
-    }
+    'batsmen': {},
+    'bowlers': {}
 }
+
+for name, details in db.items():
+    role = details.get('role')
+    norm_details = details.copy()
+    norm_details['hand'] = details.get('hand', '').split(' ')[0] # 'Right Hand' -> 'Right', 'Left Hand' -> 'Left'
+    
+    if role == 'Batsman':
+        PLAYERS['batsmen'][name] = norm_details
+    elif role == 'Bowler':
+        style = details.get('style', '')
+        hand = norm_details['hand']
+        if 'Fast' in style or 'Medium' in style:
+            if hand == 'Left':
+                norm_details['type'] = 'LeftArmFast'
+            else:
+                norm_details['type'] = 'Fast'
+        elif 'Leg' in style or 'Chinaman' in style:
+            norm_details['type'] = 'LegSpin'
+        else: # Orthodox or other spin
+            norm_details['type'] = 'Ortho'
+            
+        PLAYERS['bowlers'][name] = norm_details
 
 # Extensive list of Indian grounds with specialized characteristics
 VENUES = [
@@ -95,7 +56,7 @@ BALL_TYPES = ['White Kookaburra', 'SG Test', 'Pink Ball']
 LINES = ['Outside Off', 'On the Off Stump', 'Middle Stump', 'Leg Stump', 'Outside Leg']
 LENGTHS = ['Short', 'Good Length', 'Full', 'Yorker', 'Full Toss']
 
-def generate_telemetry_data(num_samples=15000):
+def generate_telemetry_data(num_samples=50000):
     np.random.seed(42)
     random.seed(42)
     
