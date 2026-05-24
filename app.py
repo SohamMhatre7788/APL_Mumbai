@@ -18,37 +18,43 @@ PLAYER_DETAILS = {
         'role': 'Batsman', 'hand': 'Right Hand', 'style': 'Anchor', 'form': 0.92,
         'bio': 'One of the greatest modern-day batsmen, master of run-chases and timing.',
         'pace_rating': 95, 'spin_rating': 85, 'defense_rating': 90, 'aggression_rating': 75,
-        'image': 'https://images.unsplash.com/photo-1540747737956-37872404f802?q=80&w=250&auto=format&fit=crop'
+        'image': 'https://images.unsplash.com/photo-1540747737956-37872404f802?q=80&w=250&auto=format&fit=crop',
+        'weakness_lengths': ['Good Length'], 'weakness_paths': ['Out-swinger']
     },
     'Rohit Sharma': {
         'role': 'Batsman', 'hand': 'Right Hand', 'style': 'Aggressive', 'form': 0.82,
         'bio': 'Lethal opening batsman, famous for his elegant pull shots and big scores.',
         'pace_rating': 92, 'spin_rating': 80, 'defense_rating': 80, 'aggression_rating': 90,
-        'image': 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?q=80&w=250&auto=format&fit=crop'
+        'image': 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?q=80&w=250&auto=format&fit=crop',
+        'weakness_lengths': ['Yorker', 'Good Length'], 'weakness_paths': ['In-swinger']
     },
     'MS Dhoni': {
         'role': 'Batsman', 'hand': 'Right Hand', 'style': 'Finisher', 'form': 0.86,
         'bio': 'Legendary captain and finisher, possessing lightning-fast reflexes and cool head.',
         'pace_rating': 80, 'spin_rating': 95, 'defense_rating': 85, 'aggression_rating': 85,
-        'image': 'https://images.unsplash.com/photo-1607734834834-d2e85a6a3b2b?q=80&w=250&auto=format&fit=crop'
+        'image': 'https://images.unsplash.com/photo-1607734834834-d2e85a6a3b2b?q=80&w=250&auto=format&fit=crop',
+        'weakness_lengths': ['Short', 'Good Length'], 'weakness_paths': ['Bouncer', 'Out-swinger']
     },
     'Suryakumar Yadav': {
         'role': 'Batsman', 'hand': 'Right Hand', 'style': 'Aggressive (360°)', 'form': 0.94,
         'bio': 'Highly inventive T20 batsman who can hit boundaries all over the ground.',
         'pace_rating': 94, 'spin_rating': 92, 'defense_rating': 70, 'aggression_rating': 98,
-        'image': 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?q=80&w=250&auto=format&fit=crop'
+        'image': 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?q=80&w=250&auto=format&fit=crop',
+        'weakness_lengths': ['Short'], 'weakness_paths': ['Bouncer']
     },
     'Rishabh Pant': {
         'role': 'Batsman', 'hand': 'Left Hand', 'style': 'Aggressive', 'form': 0.78,
         'bio': 'Fearless left-handed batsman and wicketkeeper, known for audacious lofted shots.',
         'pace_rating': 82, 'spin_rating': 90, 'defense_rating': 75, 'aggression_rating': 92,
-        'image': 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=250&auto=format&fit=crop'
+        'image': 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=250&auto=format&fit=crop',
+        'weakness_lengths': ['Good Length'], 'weakness_paths': ['Out-swinger', 'Cutter']
     },
     'Shubman Gill': {
         'role': 'Batsman', 'hand': 'Right Hand', 'style': 'Anchor', 'form': 0.85,
         'bio': 'Technically gifted top-order batsman representing the future of Indian cricket.',
         'pace_rating': 90, 'spin_rating': 84, 'defense_rating': 88, 'aggression_rating': 80,
-        'image': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=250&auto=format&fit=crop'
+        'image': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=250&auto=format&fit=crop',
+        'weakness_lengths': ['Short'], 'weakness_paths': ['Bouncer']
     },
     'Jasprit Bumrah': {
         'role': 'Bowler', 'hand': 'Right Arm', 'style': 'Fast', 'form': 0.96,
@@ -398,6 +404,8 @@ def get_recommendation(payload: RecommendationInput):
         })
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 # Mount static folder
