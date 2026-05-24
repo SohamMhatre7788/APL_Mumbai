@@ -175,7 +175,7 @@ def fetch_live_match_state():
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
     req = urllib.request.Request(url, headers=headers)
     try:
-        with urllib.request.urlopen(req) as response:
+        with urllib.request.urlopen(req, timeout=5) as response:
             html = response.read().decode('utf-8')
             
         # Parse match score pages
@@ -189,7 +189,7 @@ def fetch_live_match_state():
         
         match_url = f"https://www.cricbuzz.com{target_link}"
         req_detail = urllib.request.Request(match_url, headers=headers)
-        with urllib.request.urlopen(req_detail) as response_detail:
+        with urllib.request.urlopen(req_detail, timeout=5) as response_detail:
             detail_html = response_detail.read().decode('utf-8')
             
         # Extract meta description
@@ -228,7 +228,7 @@ def fetch_live_match_state():
         try:
             weather_url = f"http://wttr.in/{urllib.parse.quote(city)}?format=j1"
             w_req = urllib.request.Request(weather_url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(w_req) as w_resp:
+            with urllib.request.urlopen(w_req, timeout=4) as w_resp:
                 w_data = json.loads(w_resp.read().decode('utf-8'))
                 curr = w_data['current_condition'][0]
                 temp = curr['temp_C']

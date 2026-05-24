@@ -498,11 +498,18 @@ document.addEventListener("DOMContentLoaded", () => {
             matchInning.value = data.inning.toString();
             matchOvers.value = data.overs.toString();
             matchWickets.value = data.wickets.toString();
+            ballAge.value = data.overs.toString();
             
             if (data.inning === 2) {
                 targetRuns.value = data.target_runs;
                 runsNeeded.value = data.runs_needed;
                 ballsRemaining.value = data.balls_remaining;
+            } else {
+                targetRuns.value = 0;
+                runsNeeded.value = 0;
+                const intOvers = Math.floor(data.overs);
+                const ballsBowled = Math.round((data.overs - intOvers) * 10);
+                ballsRemaining.value = Math.max(1, 120 - (intOvers * 6 + ballsBowled));
             }
             
             toggleInningsChaseFields();
@@ -530,16 +537,70 @@ document.addEventListener("DOMContentLoaded", () => {
                 for (let option of batsmanSelect.options) {
                     if (option.value.toLowerCase().includes(data.batsman.toLowerCase()) || data.batsman.toLowerCase().includes(option.value.toLowerCase())) {
                         batsmanSelect.value = option.value;
+                        batsmanFound = true;
                         break;
                     }
                 }
+                
+                if (!batsmanFound) {
+                    const opt = document.createElement("option");
+                    opt.value = data.batsman;
+                    opt.textContent = data.batsman + " (Live)";
+                    batsmanSelect.appendChild(opt);
+                    batsmanSelect.value = data.batsman;
+                    
+                    playersData[data.batsman] = {
+                        role: "Batsman",
+                        hand: "Right Hand",
+                        style: "Balanced",
+                        form: 0.80,
+                        bio: "Live match batsman. Performance profiles simulated dynamically.",
+                        pace_rating: 80,
+                        spin_rating: 80,
+                        defense_rating: 80,
+                        aggression_rating: 80,
+                        image: "https://images.unsplash.com/photo-1540747737956-37872404f802?q=80&w=250&auto=format&fit=crop",
+                        weakness_lengths: ["Good Length"],
+                        weakness_paths: ["Cutter"],
+                        preferred_shots: ["Drive", "Defensive"],
+                        shot_weights: [0.5, 0.5]
+                    };
+                }
             }
+            
             if (!bowlerFound) {
                 for (let option of bowlerSelect.options) {
                     if (option.value.toLowerCase().includes(data.bowler.toLowerCase()) || data.bowler.toLowerCase().includes(option.value.toLowerCase())) {
                         bowlerSelect.value = option.value;
+                        bowlerFound = true;
                         break;
                     }
+                }
+                
+                if (!bowlerFound) {
+                    const opt = document.createElement("option");
+                    opt.value = data.bowler;
+                    opt.textContent = data.bowler + " (Live)";
+                    bowlerSelect.appendChild(opt);
+                    bowlerSelect.value = data.bowler;
+                    
+                    playersData[data.bowler] = {
+                        role: "Bowler",
+                        hand: "Right Arm",
+                        style: "Fast-Medium",
+                        form: 0.80,
+                        bio: "Live match bowler. Performance profiles simulated dynamically.",
+                        speed_rating: 80,
+                        control_rating: 80,
+                        variation_rating: 80,
+                        deception_rating: 80,
+                        image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=250&auto=format&fit=crop",
+                        speed_min: 125,
+                        speed_max: 138,
+                        control: 0.80,
+                        variations: ["Normal", "Yorker", "Cutter"],
+                        var_weights: [0.5, 0.25, 0.25]
+                    };
                 }
             }
             
